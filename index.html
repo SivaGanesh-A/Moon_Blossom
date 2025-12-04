@@ -1,0 +1,649 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Flowers Shader — Enhanced</title>
+
+<!-- Cute font for flower texts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600&display=swap" rel="stylesheet">
+
+<style>
+html, body {
+    overflow: hidden;
+    padding: 0;
+    margin: 0;
+}
+
+/* Starry background */
+body {
+    background:
+        radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.9), transparent 60%),
+        radial-gradient(1px 1px at 30% 80%, rgba(255,255,255,0.7), transparent 60%),
+        radial-gradient(1.2px 1.2px at 70% 40%, rgba(255,255,255,0.8), transparent 60%),
+        radial-gradient(1px 1px at 90% 10%, rgba(255,255,255,0.9), transparent 60%),
+        radial-gradient(1.5px 1.5px at 50% 10%, rgba(255,255,255,0.65), transparent 60%),
+        linear-gradient(180deg, #050018 0%, #1a0328 40%, #24001f 100%);
+    background-attachment: fixed;
+}
+
+.container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column-reverse;
+    align-items: start;
+}
+
+/* Fancy clean button */
+.clean-btn {
+    z-index: 2;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 14px;
+    color: #ffffff;
+    user-select: none;
+    cursor: pointer;
+    text-transform: capitalize;
+    letter-spacing: 0.05em;
+
+    margin: 20px 0 25px 25px;
+    padding: 10px 22px;
+
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.22), rgba(255, 192, 203, 0.55));
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(7px);
+
+    text-shadow: 0 0 10px rgba(0,0,0,0.7);
+    opacity: 0.95;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease, background 0.3s ease;
+}
+
+.clean-btn::before {
+    content: "✧";
+    font-size: 14px;
+}
+
+.clean-btn:hover {
+    transform: translateY(-1px) scale(1.03);
+    box-shadow: 0 6px 26px rgba(0, 0, 0, 0.8);
+    opacity: 1;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 160, 200, 0.85));
+}
+
+.clean-btn:active {
+    transform: translateY(1px) scale(0.97);
+    box-shadow: 0 2px 14px rgba(0, 0, 0, 0.6);
+}
+
+/* Canvas above moon */
+canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+/* Center text */
+.name {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    transform: translate(-50%, -50%);
+    color: white;
+    text-align: center;
+    font-size: 4vw;
+    text-shadow: 0 0 5px #000000;
+    user-select: none;
+    pointer-events: none;
+    z-index: 2;
+    transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.name--hidden {
+    opacity: 0;
+    transform: translate(-50%, -60%);
+}
+
+@media all and (min-width: 640px) {
+    .name {
+        font-size: 45px;
+    }
+}
+
+/* Floating moon – behind flowers */
+.moon {
+    position: fixed;
+    top: 6vh;
+    left: 0;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle at 30% 30%, #ffffff, #e9e9ff 40%, #b5b5dd 100%);
+    box-shadow:
+        0 0 55px rgba(255, 255, 255, 1),
+        0 0 130px rgba(255, 255, 255, 0.95);
+    pointer-events: none;
+    z-index: 0;
+    animation:
+        moonDrift 45s ease-in-out infinite,
+        moonGlow 16s ease-in-out infinite,
+        moonColor 20s ease-in-out infinite;
+}
+
+/* craters */
+.moon::before,
+.moon::after {
+    content: "";
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(190,190,215,0.95), rgba(110,110,130,0.15));
+    opacity: 0.8;
+}
+
+.moon::before {
+    width: 30px;
+    height: 30px;
+    top: 30px;
+    left: 25px;
+}
+
+.moon::after {
+    width: 18px;
+    height: 18px;
+    top: 65px;
+    left: 60px;
+}
+
+/* Faster entrance + always visible: left -> right -> center-ish wiggle */
+@keyframes moonDrift {
+    0% {
+        transform: translateX(-5vw) translateY(0vh);
+    }
+    20% {
+        transform: translateX(10vw) translateY(1vh);
+    }
+    40% {
+        transform: translateX(55vw) translateY(2vh);
+    }
+    60% {
+        transform: translateX(38vw) translateY(1.5vh);
+    }
+    80% {
+        transform: translateX(42vw) translateY(1.8vh);
+    }
+    90% {
+        transform: translateX(36vw) translateY(1.5vh);
+    }
+    100% {
+        transform: translateX(40vw) translateY(1.7vh);
+    }
+}
+
+/* Stronger colored glow: white → blue → purple → pink → white */
+@keyframes moonGlow {
+    0% {
+        box-shadow:
+            0 0 55px rgba(255, 255, 255, 1),
+            0 0 140px rgba(255, 255, 255, 0.95);
+    }
+    25% {
+        box-shadow:
+            0 0 65px rgba(150, 190, 255, 1),
+            0 0 160px rgba(120, 160, 255, 0.98);
+    }
+    50% {
+        box-shadow:
+            0 0 70px rgba(210, 180, 255, 1),
+            0 0 170px rgba(190, 150, 255, 1);
+    }
+    75% {
+        box-shadow:
+            0 0 75px rgba(255, 190, 230, 1),
+            0 0 180px rgba(255, 150, 210, 1);
+    }
+    100% {
+        box-shadow:
+            0 0 60px rgba(255, 255, 255, 1),
+            0 0 150px rgba(235, 235, 255, 0.95);
+    }
+}
+
+/* Color cycle for the moon disc itself (more vivid pink/blue/purple) */
+@keyframes moonColor {
+    0% {
+        filter: hue-rotate(0deg) saturate(160%);
+    }
+    25% {
+        filter: hue-rotate(220deg) saturate(190%); /* blue */
+    }
+    50% {
+        filter: hue-rotate(260deg) saturate(200%); /* violet/purple */
+    }
+    75% {
+        filter: hue-rotate(310deg) saturate(210%); /* pink */
+    }
+    100% {
+        filter: hue-rotate(360deg) saturate(160%);
+    }
+}
+
+/* Text near first three flowers – bigger + cute font */
+.flower-text {
+    position: fixed;
+    transform: translate(-50%, -120%);
+    font-family: 'Baloo 2', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+
+    background: linear-gradient(135deg, #ffe6f8, #d8c4ff, #b0e0ff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+
+    text-shadow:
+        0 0 6px rgba(0, 0, 0, 0.75),
+        0 0 14px rgba(255, 255, 255, 0.3);
+
+    pointer-events: none;
+    z-index: 3;
+    opacity: 1;
+    transition: opacity 0.9s ease, transform 0.9s ease;
+}
+
+.flower-text--fade {
+    opacity: 0;
+    transform: translate(-50%, -180%);
+}
+</style>
+</head>
+<body>
+<div class="container">
+   <canvas id="canvas"></canvas>
+   <div class="clean-btn">
+      clean the screen
+   </div>
+</div>
+
+<div class="name">
+   Click To Add Flowers
+</div>
+
+<div class="moon"></div>
+
+<!-- FRAGMENT SHADER -->
+<script type="x-shader/x-fragment" id="fragmentShader">
+precision mediump float;
+precision mediump int;
+#define PI 3.14159265359
+
+uniform float u_ratio;
+uniform vec2 u_cursor;
+uniform float u_stop_time;
+uniform float u_clean;
+uniform vec2 u_stop_randomizer;
+
+uniform sampler2D u_texture;
+varying vec2 vUv;
+
+// --------------------------------
+// 2D noise (classic snoise implementation)
+
+vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+vec2 mod289(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+vec3 permute(vec3 x) { return mod289(((x*34.0)+1.0)*x); }
+
+float snoise(vec2 v) {
+    const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
+    vec2 i = floor(v + dot(v, C.yy));
+    vec2 x0 = v - i + dot(i, C.xx);
+    vec2 i1;
+    i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+    vec4 x12 = x0.xyxy + C.xxzz;
+    x12.xy -= i1;
+    i = mod289(i);
+    vec3 p = permute(permute(i.y + vec3(0.0, i1.y, 1.0)) + i.x + vec3(0.0, i1.x, 1.0));
+    vec3 m = max(0.5 - vec3(dot(x0, x0), dot(x12.xy, x12.xy), dot(x12.zw, x12.zw)), 0.0);
+    m = m*m;
+    m = m*m;
+    vec3 x = 2.0 * fract(p * C.www) - 1.0;
+    vec3 h = abs(x) - 0.5;
+    vec3 ox = floor(x + 0.5);
+    vec3 a0 = x - ox;
+    m *= 1.79284291400159 - 0.85373472095314 * (a0*a0 + h*h);
+    vec3 g;
+    g.x = a0.x * x0.x + h.x * x0.y;
+    g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+    return 130.0 * dot(m, g);
+}
+
+float get_flower_shape(vec2 _p, float _pet_n, float _angle, float _outline) {
+    _angle *= 3.;
+
+    _p = vec2(_p.x * cos(_angle) - _p.y * sin(_angle),
+             _p.x * sin(_angle) + _p.y * cos(_angle));
+
+    float a = atan(_p.y, _p.x);
+
+    float flower_sectoral_shape = pow(abs(sin(a * _pet_n)), .4) + .25;
+
+    vec2 flower_size_range = vec2(.03, .1);
+    float size = flower_size_range[0] + u_stop_randomizer[0] * flower_size_range[1];
+
+    float flower_radial_shape = pow(length(_p) / size, 2.0);
+    flower_radial_shape -= .1 * sin(8.0 * a); // add noise
+    flower_radial_shape = max(.1, flower_radial_shape);
+    flower_radial_shape += smoothstep(0.0, 0.03, -_p.y + .2 * abs(_p.x));
+
+    float grow_time = step(.25, u_stop_time) * pow(u_stop_time, .3);
+    float safe_grow = max(grow_time, 1e-5);
+    float flower_shape = 0.0;
+    if (grow_time > 0.0) {
+        flower_shape = 1.0 - smoothstep(0.0, flower_sectoral_shape, _outline * flower_radial_shape / safe_grow);
+    }
+
+    flower_shape *= (1.0 - step(1.0, grow_time));
+
+    return flower_shape;
+}
+
+float get_stem_shape(vec2 _p, vec2 _uv, float _w, float _angle) {
+
+    _w = max(.004, _w);
+
+    float x_offset = _p.y * sin(_angle);
+    x_offset *= pow(3.0 * _uv.y, 2.0);
+    _p.x -= x_offset;
+
+    // add horizontal noise to the cursor coordinate
+    float noise_power = .5;
+    float cursor_horizontal_noise = noise_power * snoise(2.0 * _uv * u_stop_randomizer[0]);
+
+    // replace invalid dot(scalar, scalar) with scalar multiplication
+    cursor_horizontal_noise *= pow(_p.y * _p.y, .6); // noise zero near cursor
+    cursor_horizontal_noise *= pow(_uv.y * _uv.y, .3); // noise zero near bottom
+
+    _p.x += cursor_horizontal_noise;
+
+    // vertical line through the cursor point (_p.x)
+    float left = smoothstep(-_w, 0.0, _p.x);
+    float right = 1.0 - smoothstep(0.0, _w, _p.x);
+    float stem_shape = left * right;
+
+    // make it grow + don't go up to the cursor point
+    float grow_time = 1.0 - smoothstep(0.0, .2, u_stop_time);
+    float stem_top_mask = smoothstep(0.0, pow(grow_time, .5), .03 - _p.y);
+    stem_shape *= stem_top_mask;
+
+    // stop drawing once done
+    stem_shape *= (1.0 - step(.17, u_stop_time));
+
+    return stem_shape;
+}
+
+void main() {
+
+    vec3 base = texture2D(u_texture, vUv).xyz;
+
+    vec2 uv = vUv;
+    uv.x *= u_ratio;
+    vec2 cursor = vUv - u_cursor.xy;
+    cursor.x *= u_ratio;
+
+    vec3 stem_color = vec3(.1 + u_stop_randomizer[0] * .6, .6, .2);
+    vec3 flower_color = vec3(.6 + .5 * u_stop_randomizer[1], .1, .9 - .5 * u_stop_randomizer[1]);
+
+    float angle = .5 * (u_stop_randomizer[0] - .5);
+
+    float stem_shape = get_stem_shape(cursor, uv, .003, angle);
+    stem_shape += get_stem_shape(cursor + vec2(0.0, .2 + .5 * u_stop_randomizer[0]), uv, .003, angle);
+    float stem_mask = 1.0 - get_stem_shape(cursor, uv, .004, angle);
+    stem_mask -= get_stem_shape(cursor + vec2(0.0, .2 + .5 * u_stop_randomizer[0]), uv, .004, angle);
+
+    float petals_back_number = 1.0 + floor(u_stop_randomizer[0] * 2.0);
+    float angle_offset = -(2.0 * step(0.0, angle) - 1.0) * .1 * u_stop_time;
+    float flower_back_shape = get_flower_shape(cursor, petals_back_number, angle + angle_offset, 1.5);
+    float flower_back_mask = 1.0 - get_flower_shape(cursor, petals_back_number, angle + angle_offset, 1.6);
+
+    float petals_front_number = 2.0 + floor(u_stop_randomizer[1] * 2.0);
+    float flower_front_shape = get_flower_shape(cursor, petals_front_number, angle, 1.0);
+    float flower_front_mask = 1.0 - get_flower_shape(cursor, petals_front_number, angle, .95);
+
+    vec3 color = base;
+    color *= stem_mask;
+    color *= flower_back_mask;
+    color *= flower_front_mask;
+
+    color += (stem_shape * stem_color);
+
+    color += (flower_back_shape * (flower_color + vec3(0.0, .8 * u_stop_time, 0.0)));
+    color += (flower_front_shape * flower_color);
+
+    color.r *= 1.0 - (.5 * flower_back_shape * flower_front_shape);
+    color.b *= 1.0 - (flower_back_shape * flower_front_shape);
+
+    color *= u_clean;
+
+    gl_FragColor = vec4(color, 1.0);
+}
+</script>
+
+<!-- VERTEX SHADER -->
+<script type="x-shader/x-vertex" id="vertexShader">
+precision mediump float;
+precision mediump int;
+varying vec2 vUv;
+void main() {
+    vUv = uv;
+    gl_Position = vec4(position, 1.0);
+}
+</script>
+
+<!-- MAIN JS -->
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.133.1/build/three.module.js';
+
+const canvasEl = document.querySelector('#canvas');
+const cleanBtn = document.querySelector('.clean-btn');
+const nameOverlay = document.querySelector('.name');
+
+const flowerMessages = ["hi", "sorry", "you are favorate"];
+let flowerClickCount = 0;
+
+const pointer = {
+    x: 0.66,
+    y: 0.3,
+    clicked: true,
+};
+
+// little auto-click for demo preview (this does NOT hide the text)
+window.setTimeout(() => {
+    pointer.x = 0.75;
+    pointer.y = 0.5;
+    pointer.clicked = true;
+}, 700);
+
+let basicMaterial, shaderMaterial;
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+let renderer = new THREE.WebGLRenderer({
+    canvas: canvasEl,
+    alpha: true,
+    antialias: true,
+});
+renderer.setPixelRatio(DPR);
+let sceneShader = new THREE.Scene();
+let sceneBasic = new THREE.Scene();
+let camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 10);
+let clock = new THREE.Clock();
+
+let renderTargets = [
+    new THREE.WebGLRenderTarget(Math.max(1, window.innerWidth * DPR), Math.max(1, window.innerHeight * DPR)),
+    new THREE.WebGLRenderTarget(Math.max(1, window.innerWidth * DPR), Math.max(1, window.innerHeight * DPR)),
+];
+
+createPlane();
+updateSize();
+
+window.addEventListener('resize', () => {
+    updateSize();
+    cleanCanvas();
+});
+
+render();
+
+let isTouchScreen = false;
+
+window.addEventListener('click', e => {
+    if (!isTouchScreen) {
+        pointer.x = e.pageX / window.innerWidth;
+        pointer.y = e.pageY / window.innerHeight;
+        pointer.clicked = true;
+
+        // Hide the "Click To Add Flowers" text on first user click
+        if (nameOverlay && !nameOverlay.classList.contains('name--hidden')) {
+            nameOverlay.classList.add('name--hidden');
+        }
+
+        handleFlowerMessage(e.pageX, e.pageY);
+    }
+});
+
+window.addEventListener('touchstart', e => {
+    isTouchScreen = true;
+    const touch = e.targetTouches[0];
+    pointer.x = touch.pageX / window.innerWidth;
+    pointer.y = touch.pageY / window.innerHeight;
+    pointer.clicked = true;
+
+    if (nameOverlay && !nameOverlay.classList.contains('name--hidden')) {
+        nameOverlay.classList.add('name--hidden');
+    }
+
+    handleFlowerMessage(touch.pageX, touch.pageY);
+});
+
+cleanBtn.addEventListener('click', cleanCanvas);
+
+function cleanCanvas() {
+    pointer.vanishCanvas = true;
+    setTimeout(() => {
+        pointer.vanishCanvas = false;
+    }, 50);
+}
+
+function handleFlowerMessage(x, y) {
+    if (flowerClickCount >= flowerMessages.length) return;
+
+    const msg = flowerMessages[flowerClickCount];
+    flowerClickCount++;
+
+    const textEl = document.createElement('div');
+    textEl.className = 'flower-text';
+    textEl.textContent = msg;
+    textEl.style.left = x + 'px';
+    textEl.style.top = y + 'px';
+
+    document.body.appendChild(textEl);
+
+    // Let it appear, then fade and move up
+    setTimeout(() => {
+        textEl.classList.add('flower-text--fade');
+    }, 70);
+
+    setTimeout(() => {
+        textEl.remove();
+    }, 3000);
+}
+
+function createPlane() {
+    shaderMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+            u_stop_time: { value: 0.0 },
+            u_stop_randomizer: { value: new THREE.Vector2(Math.random(), Math.random()) },
+            u_cursor: { value: new THREE.Vector2(pointer.x, pointer.y) },
+            u_ratio: { value: window.innerWidth / window.innerHeight },
+            u_texture: { value: null },
+            u_clean: { value: 1.0 },
+        },
+        vertexShader: document.getElementById('vertexShader').textContent,
+        fragmentShader: document.getElementById('fragmentShader').textContent,
+    });
+
+    basicMaterial = new THREE.MeshBasicMaterial({ map: renderTargets[0].texture });
+
+    const planeGeometry = new THREE.PlaneGeometry(2, 2);
+    const planeBasic = new THREE.Mesh(planeGeometry, basicMaterial);
+    const planeShader = new THREE.Mesh(planeGeometry, shaderMaterial);
+    sceneBasic.add(planeBasic);
+    sceneShader.add(planeShader);
+}
+
+function render() {
+    // apply clean toggle
+    shaderMaterial.uniforms.u_clean.value = pointer.vanishCanvas ? 0.0 : 1.0;
+
+    // feed previous frame texture
+    shaderMaterial.uniforms.u_texture.value = renderTargets[0].texture;
+
+    if (pointer.clicked) {
+        // update existing vector instances (no allocations)
+        shaderMaterial.uniforms.u_cursor.value.set(pointer.x, 1 - pointer.y);
+        shaderMaterial.uniforms.u_stop_randomizer.value.set(Math.random(), Math.random());
+        shaderMaterial.uniforms.u_stop_time.value = 0.0;
+        pointer.clicked = false;
+    }
+
+    // advance time
+    shaderMaterial.uniforms.u_stop_time.value += clock.getDelta();
+
+    // render shader scene into target 1
+    renderer.setRenderTarget(renderTargets[1]);
+    renderer.render(sceneShader, camera);
+
+    // use target1 as texture on basic material and render to screen
+    basicMaterial.map = renderTargets[1].texture;
+    basicMaterial.needsUpdate = true;
+
+    renderer.setRenderTarget(null);
+    renderer.render(sceneBasic, camera);
+
+    // swap targets
+    let tmp = renderTargets[0];
+    renderTargets[0] = renderTargets[1];
+    renderTargets[1] = tmp;
+
+    requestAnimationFrame(render);
+}
+
+function updateSize() {
+    const w = Math.max(1, window.innerWidth);
+    const h = Math.max(1, window.innerHeight);
+    shaderMaterial.uniforms.u_ratio.value = w / h;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(w, h);
+
+    // resize render targets with DPR for crispness on HiDPI
+    const pixelW = Math.max(1, Math.floor(w * DPR));
+    const pixelH = Math.max(1, Math.floor(h * DPR));
+    renderTargets[0].setSize(pixelW, pixelH);
+    renderTargets[1].setSize(pixelW, pixelH);
+}
+</script>
+</body>
+</html>
